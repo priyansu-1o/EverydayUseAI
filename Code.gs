@@ -40,11 +40,28 @@ function generateFeedbackForm(eventDescription) {
       'muteHttpExceptions': true
     };
     
-    const response = UrlFetchApp.fetch(url, options);
-    const result = JSON.parse(response.getContentText());
+    let response, result;
+    let maxRetries = 3;
+    let retryDelay = 2000;
     
-    if (result.error) {
-      throw new Error(result.error.message);
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      response = UrlFetchApp.fetch(url, options);
+      result = JSON.parse(response.getContentText());
+      
+      if (result.error) {
+        // Check if it's a high demand, rate limit, or server error
+        const isTransientError = result.error.code === 503 || result.error.code === 429 || result.error.message.includes("high demand");
+        if (isTransientError && attempt < maxRetries) {
+          Utilities.sleep(retryDelay);
+          retryDelay *= 2; // Exponential backoff: 2s, 4s, 8s
+          continue;
+        } else {
+          throw new Error(result.error.message + (attempt > 0 ? ` (Failed after ${attempt} retries)` : ''));
+        }
+      }
+      
+      // If success, exit retry loop
+      break;
     }
     
     const textResponse = result.candidates[0].content.parts[0].text;
