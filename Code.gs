@@ -41,8 +41,8 @@ function generateFeedbackForm(eventDescription) {
     };
     
     let response, result;
-    let maxRetries = 3;
-    let retryDelay = 2000;
+    let maxRetries = 5;      // Increased to 5 retries
+    let retryDelay = 4000;   // Start at 4 seconds
     
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
       response = UrlFetchApp.fetch(url, options);
