@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Event Feedback Form Generator</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Feather Icons -->
+    <script src="https://unpkg.com/feather-icons"></script>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --surface-color: rgba(30, 41, 59, 0.7);
+            --surface-border: rgba(255, 255, 255, 0.1);
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --primary: #8b5cf6;
+            --primary-hover: #7c3aed;
+            --secondary: #ec4899;
+            --success: #10b981;
+            --danger: #ef4444;
+            --gradient: linear-gradient(135deg, var(--primary), var(--secondary));
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-image: 
+                radial-gradient(circle at 15% 50%, rgba(139, 92, 246, 0.15), transparent 25%),
+                radial-gradient(circle at 85% 30%, rgba(236, 72, 153, 0.15), transparent 25%);
+            overflow-x: hidden;
+            padding: 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 680px;
+            z-index: 10;
+        }
+
+        .glass-panel {
+            background: var(--surface-color);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--surface-border);
+            border-radius: 24px;
+            padding: 40px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        .header-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 64px;
+            height: 64px;
+            border-radius: 20px;
+            background: var(--gradient);
+            margin-bottom: 20px;
+            box-shadow: 0 10px 25px rgba(139, 92, 246, 0.4);
+        }
+
+        .header-icon svg {
+            color: white;
+            width: 32px;
+            height: 32px;
+        }
+
+        h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 12px;
+            background: var(--gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.02em;
+        }
+
+        p.subtitle {
+            color: var(--text-muted);
+            font-size: 1.1rem;
+            line-height: 1.6;
+        }
+
+        .input-group {
+            margin-bottom: 24px;
+            position: relative;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 10px;
+            font-size: 0.95rem;
+            font-weight: 500;
+            color: var(--text-main);
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 160px;
+            padding: 16px;
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid var(--surface-border);
+            border-radius: 16px;
+            color: var(--text-main);
+            font-family: inherit;
+            font-size: 1rem;
+            line-height: 1.5;
+            resize: vertical;
+            transition: all 0.2s ease;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.1);
+        }
+
+        textarea::placeholder {
+            color: rgba(148, 163, 184, 0.5);
+        }
+
+        .btn {
+            width: 100%;
+            padding: 16px 24px;
+            border: none;
+            border-radius: 16px;
+            background: var(--gradient);
+            color: white;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            transition: all 0.3s ease;
+            box-shadow: 0 10px 20px rgba(139, 92, 246, 0.2);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 15px 30px rgba(139, 92, 246, 0.3);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Loading State */
+        .loader {
+            display: none;
+            width: 24px;
+            height: 24px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Views */
+        #successView, #errorView {
+            display: none;
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .result-card {
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid var(--surface-border);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+
+        .result-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 0;
+            border-bottom: 1px solid var(--surface-border);
+        }
+
+        .result-item:last-child {
+            border-bottom: none;
+            padding-bottom: 0;
+        }
+
+        .result-item:first-child {
+            padding-top: 0;
+        }
+
+        .result-info {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .result-title {
+            font-weight: 600;
+            font-size: 1.05rem;
+        }
+
+        .result-desc {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 1px solid var(--surface-border);
+            color: var(--text-main);
+            padding: 10px 16px;
+            border-radius: 12px;
+            font-size: 0.95rem;
+            font-weight: 500;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s;
+        }
+
+        .btn-outline:hover {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+        
+        .btn-outline.primary-variant {
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+        
+        .btn-outline.primary-variant:hover {
+            background: rgba(139, 92, 246, 0.1);
+        }
+
+        .error-message {
+            color: var(--danger);
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.2);
+            padding: 16px;
+            border-radius: 12px;
+            margin-bottom: 24px;
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+        }
+
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 0.95rem;
+            margin-top: 24px;
+            transition: color 0.2s;
+            cursor: pointer;
+        }
+
+        .back-link:hover {
+            color: var(--text-main);
+        }
+
+        /* Decorative blur orbs */
+        .orb {
+            position: fixed;
+            border-radius: 50%;
+            filter: blur(100px);
+            z-index: 1;
+            opacity: 0.5;
+            animation: float 10s infinite ease-in-out alternate;
+        }
+
+        .orb-1 {
+            width: 300px;
+            height: 300px;
+            background: var(--primary);
+            top: -100px;
+            left: -100px;
+        }
+
+        .orb-2 {
+            width: 400px;
+            height: 400px;
+            background: var(--secondary);
+            bottom: -150px;
+            right: -100px;
+            animation-delay: -5s;
+        }
+
+        @keyframes float {
+            0% { transform: translate(0, 0); }
+            100% { transform: translate(30px, 50px); }
+        }
+
+        @media (max-width: 640px) {
+            .glass-panel {
+                padding: 24px;
+            }
+            .result-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 16px;
+            }
+            .btn-outline {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+
+    <div class="container">
+        <div class="glass-panel">
+            
+            <!-- Generate View -->
+            <div id="generateView">
+                <div class="header">
+                    <div class="header-icon">
+                        <i data-feather="zap"></i>
+                    </div>
+                    <h1>AI Form Generator</h1>
+                    <p class="subtitle">Turn any event description into a beautiful, tailored feedback form in seconds.</p>
+                </div>
+
+                <form id="generateForm">
+                    <div class="input-group">
+                        <label for="eventDescription">Event Details & Description</label>
+                        <textarea 
+                            id="eventDescription" 
+                            placeholder="e.g. A 2-day technical hackathon focused on AI agents and large language models. Activities included keynote speeches, 24-hour coding sessions, and final project presentations. We want to know how the catering was, if the API keys worked smoothly, and overall satisfaction..." 
+                            required></textarea>
+                    </div>
+                    
+                    <button type="submit" class="btn" id="submitBtn">
+                        <span id="btnText">Generate Feedback Form</span>
+                        <i data-feather="arrow-right" id="btnIcon"></i>
+                        <div class="loader" id="btnLoader"></div>
+                    </button>
+                </form>
+            </div>
+
+            <!-- Success View -->
+            <div id="successView">
+                <div class="header">
+                    <div class="header-icon" style="background: linear-gradient(135deg, var(--success), #34d399);">
+                        <i data-feather="check-circle"></i>
+                    </div>
+                    <h1>Form Created!</h1>
+                    <p class="subtitle">Your AI-generated feedback form is ready to use.</p>
+                </div>
+
+                <div class="result-card">
+                    <div class="result-item">
+                        <div class="result-info">
+                            <span class="result-title">Share with Attendees</span>
+                            <span class="result-desc">The public link to collect responses</span>
+                        </div>
+                        <a href="#" id="shareLink" target="_blank" class="btn-outline primary-variant">
+                            <i data-feather="external-link" style="width: 18px; height: 18px;"></i> Open Form
+                        </a>
+                    </div>
+                    <div class="result-item">
+                        <div class="result-info">
+                            <span class="result-title">Edit Form</span>
+                            <span class="result-desc">Make changes in Google Forms</span>
+                        </div>
+                        <a href="#" id="editLink" target="_blank" class="btn-outline">
+                            <i data-feather="edit-2" style="width: 18px; height: 18px;"></i> Edit
+                        </a>
+                    </div>
+                </div>
+
+                <div style="text-align: center;">
+                    <a class="back-link" onclick="resetView()">
+                        <i data-feather="arrow-left" style="width: 16px; height: 16px;"></i> Create another form
+                    </a>
+                </div>
+            </div>
+
+            <!-- Error View -->
+            <div id="errorView">
+                <div class="header">
+                    <div class="header-icon" style="background: linear-gradient(135deg, var(--danger), #f87171);">
+                        <i data-feather="alert-triangle"></i>
+                    </div>
+                    <h1>Generation Failed</h1>
+                </div>
+
+                <div class="error-message">
+                    <i data-feather="info" style="min-width: 20px;"></i>
+                    <div id="errorText">An unknown error occurred while communicating with the AI.</div>
+                </div>
+
+                <button class="btn" onclick="resetView()">Try Again</button>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        // Initialize Feather Icons
+        feather.replace();
+
+        const form = document.getElementById('generateForm');
+        const submitBtn = document.getElementById('submitBtn');
+        const btnText = document.getElementById('btnText');
+        const btnIcon = document.getElementById('btnIcon');
+        const btnLoader = document.getElementById('btnLoader');
+        
+        const views = {
+            generate: document.getElementById('generateView'),
+            success: document.getElementById('successView'),
+            error: document.getElementById('errorView')
+        };
+
+        function showView(viewName) {
+            Object.values(views).forEach(v => v.style.display = 'none');
+            views[viewName].style.display = 'block';
+        }
+
+        function resetView() {
+            showView('generate');
+            document.getElementById('eventDescription').value = '';
+        }
+
+        function setLoading(isLoading) {
+            if (isLoading) {
+                submitBtn.disabled = true;
+                btnText.textContent = 'Generating...';
+                btnIcon.style.display = 'none';
+                btnLoader.style.display = 'block';
+            } else {
+                submitBtn.disabled = false;
+                btnText.textContent = 'Generate Feedback Form';
+                btnIcon.style.display = 'block';
+                btnLoader.style.display = 'none';
+            }
+        }
+
+        form.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const description = document.getElementById('eventDescription').value.trim();
+            
+            if (!description) return;
+
+            setLoading(true);
+
+            // Call Google Apps Script backend function
+            if (typeof google !== 'undefined' && google.script) {
+                google.script.run
+                    .withSuccessHandler(function(response) {
+                        setLoading(false);
+                        if (response.success) {
+                            document.getElementById('shareLink').href = response.urls.publishedUrl;
+                            document.getElementById('editLink').href = response.urls.editUrl;
+                            showView('success');
+                        } else {
+                            document.getElementById('errorText').textContent = response.error || 'Failed to generate form.';
+                            showView('error');
+                        }
+                    })
+                    .withFailureHandler(function(error) {
+                        setLoading(false);
+                        document.getElementById('errorText').textContent = 'Server error: ' + error.message;
+                        showView('error');
+                    })
+                    .generateFeedbackForm(description);
+            } else {
+                // Mock behavior for local testing outside of Google Apps Script
+                setTimeout(() => {
+                    setLoading(false);
+                    document.getElementById('shareLink').href = '#';
+                    document.getElementById('editLink').href = '#';
+                    showView('success');
+                }, 2000);
+            }
+        });
+    </script>
+</body>
+</html>
